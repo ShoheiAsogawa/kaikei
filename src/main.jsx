@@ -437,11 +437,22 @@ function fiscalRange(fiscalYear) {
   };
 }
 
+function displayDate(date) {
+  return String(date ?? "").replaceAll("-", "/");
+}
+
 function isIsoDate(value) {
   const text = String(value ?? "");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
-  const date = new Date(`${text}T00:00:00`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === text;
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
+  if (month < 1 || month > 12) return false;
+  const maxDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return day >= 1 && day <= maxDay;
 }
 
 function normalizeDate(value, fallback) {
@@ -451,6 +462,12 @@ function normalizeDate(value, fallback) {
 function isDateInFiscalRange(date, fiscalYear) {
   const range = fiscalRange(fiscalYear);
   return isIsoDate(date) && date >= range.from && date <= range.to;
+}
+
+function fiscalDateErrorMessage(date, fiscalYear) {
+  const range = fiscalRange(fiscalYear);
+  const input = date ? displayDate(date) : "未入力";
+  return `${fiscalYearLabel(fiscalYear)}の登録可能期間は ${displayDate(range.from)}〜${displayDate(range.to)} です。\n入力日付: ${input}`;
 }
 
 function normalizeAccount(account) {
@@ -1524,7 +1541,7 @@ function Entries({ data, persist, reports }) {
     const amount = finiteNumber(form.amount);
     if (!amount || amount <= 0) return;
     if (!isDateInFiscalRange(form.date, data.fiscalYear)) {
-      alert("会計年度外の日付は登録できません。");
+      alert(fiscalDateErrorMessage(form.date, data.fiscalYear));
       return;
     }
     if (form.debit === form.credit) {
@@ -1763,7 +1780,7 @@ function PettyCash({ data, persist, reports }) {
     const amount = finiteNumber(form.amount);
     if (!amount || amount <= 0) return;
     if (!isDateInFiscalRange(form.date, data.fiscalYear)) {
-      alert("会計年度外の日付は登録できません。");
+      alert(fiscalDateErrorMessage(form.date, data.fiscalYear));
       return;
     }
 

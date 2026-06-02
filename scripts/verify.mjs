@@ -31,6 +31,7 @@ const staticChecks = [
   ["login failures show user facing auth error", /setAuthError\("メールアドレスまたはパスワードを確認してください。"\)/.test(source)],
   ["blank data action removes sample operational data", /function blankOperationalData/.test(source) && /clearDemoData/.test(source) && /入力データ削除/.test(source)],
   ["entry dates are repaired when fiscal year changes", /setForm\(\(current\) => \{\s+const safeDate = isDateInFiscalRange\(current\.date, data\.fiscalYear\)/m.test(source)],
+  ["fiscal date errors show accepted range", /function fiscalDateErrorMessage/.test(source) && /alert\(fiscalDateErrorMessage\(form\.date, data\.fiscalYear\)\)/.test(source)],
   ["no dangerous html injection", !/dangerouslySetInnerHTML|innerHTML\s*=|eval\(|new Function/.test(source)],
   ["no debug leftovers", !/debugger|TODO|FIXME/.test(source)],
 ];
@@ -46,7 +47,7 @@ const executableSource = source
   .replace(/^import "\.\/styles\.css";\r?\n/m, "")
   .replace(/createRoot\(document\.getElementById\("root"\)\)\.render\(<App \/>\);/, "")
   + "\n"
-  + "globalThis.__accounting = { seedData, initialAccounts, fiscalRange, migrateData, computeReports, fixedAssetRows, normalizeFilters, statementForType, serviceForBase, blankOperationalData, PETTY_CASH_CODE, OPERATING_BANK_CODE };";
+  + "globalThis.__accounting = { seedData, initialAccounts, fiscalRange, isDateInFiscalRange, migrateData, computeReports, fixedAssetRows, normalizeFilters, statementForType, serviceForBase, blankOperationalData, fiscalDateErrorMessage, PETTY_CASH_CODE, OPERATING_BANK_CODE };";
 
 const { code } = transformSync(executableSource, {
   loader: "jsx",
@@ -74,6 +75,7 @@ const {
   seedData,
   initialAccounts,
   fiscalRange,
+  isDateInFiscalRange,
   migrateData,
   computeReports,
   fixedAssetRows,
@@ -81,6 +83,7 @@ const {
   statementForType,
   serviceForBase,
   blankOperationalData,
+  fiscalDateErrorMessage,
   PETTY_CASH_CODE,
   OPERATING_BANK_CODE,
 } = sandbox.__accounting;
@@ -94,6 +97,8 @@ assert("activity statement has three sections", normalReports.activityRows.lengt
 const blankData = blankOperationalData(seedData.fiscalYear);
 assert("blank data keeps account master", blankData.accounts.length >= initialAccounts.length);
 assert("blank data removes sample transactions", blankData.entries.length === 0 && blankData.budgets.length === 0 && blankData.fixedAssets.length === 0);
+assert("reiwa 8 accepts 2026 fiscal start", isDateInFiscalRange("2026-04-01", "2026"));
+assert("fiscal date error includes exact range", fiscalDateErrorMessage("20206-04-01", "2026").includes("2026/04/01〜2027/03/31"));
 
 const staleFilter = normalizeFilters(seedData, { ...fullYear, base: seedData.divisions.bases[0], service: seedData.divisions.services[1] });
 assert("stale service filter is normalized to all", staleFilter.base === seedData.divisions.bases[0] && staleFilter.service === "all");
