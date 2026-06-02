@@ -26,6 +26,9 @@ const staticChecks = [
   ["non-depreciable assets are guarded", /function isDepreciableAsset/.test(source) && /const depreciable = isDepreciableAsset\(asset\.accountCode\)/.test(source)],
   ["custom account statement follows type", /statement: statementForType\(account\.type\)/.test(source)],
   ["closing reports use full fiscal year", /const closingFilters = \{ query: "", business: "all", base: "all", service: "all", \.\.\.range \}/.test(source)],
+  ["cloud mode gates app behind login screen", /cloudStoreEnabled\(\) && !cloudUser/.test(source) && /function LoginScreen/.test(source)],
+  ["login form has password visibility toggle", /showPassword/.test(source) && /type=\{showPassword \? "text" : "password"\}/.test(source)],
+  ["login failures show user facing auth error", /setAuthError\("メールアドレスまたはパスワードを確認してください。"\)/.test(source)],
   ["no dangerous html injection", !/dangerouslySetInnerHTML|innerHTML\s*=|eval\(|new Function/.test(source)],
   ["no debug leftovers", !/debugger|TODO|FIXME/.test(source)],
 ];

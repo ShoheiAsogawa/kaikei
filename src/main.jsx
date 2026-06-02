@@ -17,14 +17,19 @@ import {
   FileSpreadsheet,
   FileText,
   Filter,
+  Eye,
+  EyeOff,
   Landmark,
   Layers3,
+  LockKeyhole,
+  LogIn,
   Plus,
   Printer,
   RotateCcw,
   Save,
   Search,
   Settings,
+  ShieldCheck,
   SplitSquareHorizontal,
   Trash2,
   Upload,
@@ -928,6 +933,7 @@ function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [cloudUser, setCloudUser] = useState(null);
   const [syncStatus, setSyncStatus] = useState(cloudStoreEnabled() ? "cloud-login" : "local-only");
+  const [authError, setAuthError] = useState("");
   const [filters, setFilters] = useState({
     query: "",
     business: "all",
@@ -950,9 +956,11 @@ function App() {
       if (cancelled) return;
       setCloudUser(user);
       if (!user) {
+        setAuthError("");
         setSyncStatus("cloud-login");
         return;
       }
+      setAuthError("");
       setSyncStatus("cloud-loading");
       try {
         const cloudData = await loadCloudData();
@@ -996,11 +1004,15 @@ function App() {
   }
 
   async function loginCloud(email, password) {
+    setAuthError("");
     setSyncStatus("cloud-loading");
     try {
       await signInCloud(email, password);
+      return true;
     } catch {
       setSyncStatus("cloud-error");
+      setAuthError("メールアドレスまたはパスワードを確認してください。");
+      return false;
     }
   }
 
@@ -1011,6 +1023,10 @@ function App() {
   }
 
   const context = { data, persist, filters: effectiveFilters, setFilters, reports, setActiveTab, syncStatus };
+
+  if (cloudStoreEnabled() && !cloudUser) {
+    return <LoginScreen loginCloud={loginCloud} syncStatus={syncStatus} authError={authError} />;
+  }
 
   return (
     <div className="app-shell">
@@ -1067,6 +1083,92 @@ function App() {
         {activeTab === "backup" && <Backup {...context} resetDemo={resetDemo} />}
       </main>
     </div>
+  );
+}
+
+function LoginScreen({ loginCloud, syncStatus, authError }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const loading = syncStatus === "cloud-loading";
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!email.trim() || !password) return;
+    const loggedIn = await loginCloud(email.trim(), password);
+    if (loggedIn) setPassword("");
+  }
+
+  return (
+    <main className="login-shell">
+      <section className="login-brand">
+        <div className="login-mark">
+          <Landmark size={34} />
+        </div>
+        <p className="eyebrow">Firebase Authentication / Firestore</p>
+        <h1>社会福祉法人会計</h1>
+        <p>本部と認定こども園ひさほ保育園の会計データを、許可された利用者だけがブラウザから開けます。</p>
+        <div className="login-assurance">
+          <span>
+            <ShieldCheck size={17} />
+            メール認証
+          </span>
+          <span>
+            <Database size={17} />
+            DB同期
+          </span>
+          <span>
+            <LockKeyhole size={17} />
+            権限管理
+          </span>
+        </div>
+      </section>
+
+      <section className="login-card" aria-label="ログイン">
+        <div className="login-card-heading">
+          <LockKeyhole size={22} />
+          <div>
+            <h2>ログイン</h2>
+            <p>登録済みのメールアドレスで入ってください。</p>
+          </div>
+        </div>
+        <form className="login-form" onSubmit={submit}>
+          <label className="login-field">
+            <span>メールアドレス</span>
+            <input
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="account@example.com"
+              required
+            />
+          </label>
+          <label className="login-field">
+            <span>パスワード</span>
+            <div className="password-field">
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="パスワード"
+                required
+              />
+              <button type="button" onClick={() => setShowPassword((current) => !current)} title={showPassword ? "隠す" : "表示"}>
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
+          </label>
+          {authError && <div className="login-error">{authError}</div>}
+          <button className="login-submit" type="submit" disabled={loading || !email.trim() || !password}>
+            <LogIn size={18} />
+            {loading ? "確認中..." : "ログイン"}
+          </button>
+        </form>
+      </section>
+    </main>
   );
 }
 
