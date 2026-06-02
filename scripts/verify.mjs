@@ -29,6 +29,8 @@ const staticChecks = [
   ["cloud mode gates app behind login screen", /cloudStoreEnabled\(\) && !cloudUser/.test(source) && /function LoginScreen/.test(source)],
   ["login form has password visibility toggle", /showPassword/.test(source) && /type=\{showPassword \? "text" : "password"\}/.test(source)],
   ["login failures show user facing auth error", /setAuthError\("メールアドレスまたはパスワードを確認してください。"\)/.test(source)],
+  ["blank data action removes sample operational data", /function blankOperationalData/.test(source) && /clearDemoData/.test(source) && /入力データ削除/.test(source)],
+  ["entry dates are repaired when fiscal year changes", /setForm\(\(current\) => \{\s+const safeDate = isDateInFiscalRange\(current\.date, data\.fiscalYear\)/m.test(source)],
   ["no dangerous html injection", !/dangerouslySetInnerHTML|innerHTML\s*=|eval\(|new Function/.test(source)],
   ["no debug leftovers", !/debugger|TODO|FIXME/.test(source)],
 ];
@@ -44,7 +46,7 @@ const executableSource = source
   .replace(/^import "\.\/styles\.css";\r?\n/m, "")
   .replace(/createRoot\(document\.getElementById\("root"\)\)\.render\(<App \/>\);/, "")
   + "\n"
-  + "globalThis.__accounting = { seedData, initialAccounts, fiscalRange, migrateData, computeReports, fixedAssetRows, normalizeFilters, statementForType, serviceForBase, PETTY_CASH_CODE, OPERATING_BANK_CODE };";
+  + "globalThis.__accounting = { seedData, initialAccounts, fiscalRange, migrateData, computeReports, fixedAssetRows, normalizeFilters, statementForType, serviceForBase, blankOperationalData, PETTY_CASH_CODE, OPERATING_BANK_CODE };";
 
 const { code } = transformSync(executableSource, {
   loader: "jsx",
@@ -78,6 +80,7 @@ const {
   normalizeFilters,
   statementForType,
   serviceForBase,
+  blankOperationalData,
   PETTY_CASH_CODE,
   OPERATING_BANK_CODE,
 } = sandbox.__accounting;
@@ -87,6 +90,10 @@ const normalReports = computeReports(seedData, fullYear);
 assert("seed report has rows", normalReports.rows.length === seedData.entries.length);
 assert("fund statement has three activity classes", normalReports.fundRows.length === 3);
 assert("activity statement has three sections", normalReports.activityRows.length === 3);
+
+const blankData = blankOperationalData(seedData.fiscalYear);
+assert("blank data keeps account master", blankData.accounts.length >= initialAccounts.length);
+assert("blank data removes sample transactions", blankData.entries.length === 0 && blankData.budgets.length === 0 && blankData.fixedAssets.length === 0);
 
 const staleFilter = normalizeFilters(seedData, { ...fullYear, base: seedData.divisions.bases[0], service: seedData.divisions.services[1] });
 assert("stale service filter is normalized to all", staleFilter.base === seedData.divisions.bases[0] && staleFilter.service === "all");

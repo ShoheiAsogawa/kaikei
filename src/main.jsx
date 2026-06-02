@@ -325,6 +325,17 @@ const seedData = {
   ],
 };
 
+function blankOperationalData(fiscalYear = seedData.fiscalYear) {
+  return migrateData({
+    ...seedData,
+    fiscalYear: normalizeFiscalYear(fiscalYear),
+    entries: [],
+    budgets: [],
+    fixedAssets: [],
+    varianceReasons: {},
+  });
+}
+
 const accountTypes = {
   asset: "資産",
   liability: "負債",
@@ -1003,6 +1014,14 @@ function App() {
     setFilters({ query: "", business: "all", base: "all", service: "all", ...fiscalRange(seedData.fiscalYear) });
   }
 
+  function clearDemoData() {
+    const ok = window.confirm("仕訳・予算・固定資産・小口現金のサンプルデータを削除します。勘定科目と拠点設定は残します。よろしいですか？");
+    if (!ok) return;
+    const blank = blankOperationalData(data.fiscalYear);
+    persist(blank);
+    setFilters({ query: "", business: "all", base: "all", service: "all", ...fiscalRange(blank.fiscalYear) });
+  }
+
   async function loginCloud(email, password) {
     setAuthError("");
     setSyncStatus("cloud-loading");
@@ -1080,7 +1099,7 @@ function App() {
         {activeTab === "reports" && <Reports {...context} />}
         {activeTab === "closing" && <ClosingDocs {...context} />}
         {activeTab === "master" && <MasterData {...context} />}
-        {activeTab === "backup" && <Backup {...context} resetDemo={resetDemo} />}
+        {activeTab === "backup" && <Backup {...context} resetDemo={resetDemo} clearDemoData={clearDemoData} />}
       </main>
     </div>
   );
@@ -1485,6 +1504,13 @@ function Entries({ data, persist, reports }) {
   };
   const [form, setForm] = useState(blank);
 
+  useEffect(() => {
+    setForm((current) => {
+      const safeDate = isDateInFiscalRange(current.date, data.fiscalYear) ? current.date : range.from;
+      return current.date === safeDate ? current : { ...current, date: safeDate };
+    });
+  }, [data.fiscalYear, range.from]);
+
   function updateEntryForm(patch) {
     const next = { ...form, ...patch };
     if (cashSide(next) !== "none" && next.fund === "noncash") {
@@ -1700,6 +1726,12 @@ function PettyCash({ data, persist, reports }) {
     expenseCode: defaultExpenseCode,
     amount: "",
   });
+  useEffect(() => {
+    setForm((current) => {
+      const safeDate = isDateInFiscalRange(current.date, data.fiscalYear) ? current.date : range.from;
+      return current.date === safeDate ? current : { ...current, date: safeDate };
+    });
+  }, [data.fiscalYear, range.from]);
   const pettyScopeReports = useMemo(
     () =>
       computeReports(data, {
@@ -2534,7 +2566,7 @@ function MasterData({ data, persist }) {
   );
 }
 
-function Backup({ data, persist, reports, resetDemo, setFilters }) {
+function Backup({ data, persist, reports, resetDemo, clearDemoData, setFilters }) {
   function exportJson() {
     downloadFile(`shafuku-accounting-${data.fiscalYear}.json`, JSON.stringify(data, null, 2), "application/json;charset=utf-8");
   }
@@ -2586,6 +2618,7 @@ function Backup({ data, persist, reports, resetDemo, setFilters }) {
           <span>保存済みJSONを読み込みます。</span>
           <input type="file" accept="application/json,.json" onChange={importJson} />
         </label>
+        <ActionCard icon={Trash2} title="入力データ削除" text="サンプルの仕訳・予算・固定資産・小口現金を空にします。" onClick={clearDemoData} danger />
         <ActionCard icon={RotateCcw} title="サンプル初期化" text="初期データに戻します。" onClick={resetDemo} danger />
       </section>
 
