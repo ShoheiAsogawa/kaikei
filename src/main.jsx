@@ -459,6 +459,11 @@ function fiscalDateErrorMessage(date, fiscalYear) {
   return `${fiscalYearLabel(fiscalYear)}の登録可能期間は ${displayDate(range.from)}〜${displayDate(range.to)} です。\n入力日付: ${input}`;
 }
 
+function confirmDelete(label, detail = "") {
+  const message = detail ? `${label}を削除します。\n${detail}\nよろしいですか？` : `${label}を削除します。よろしいですか？`;
+  return window.confirm(message);
+}
+
 function normalizeAccount(account) {
   const type = Object.keys(accountTypes).includes(account?.type) ? account.type : "expense";
   const flow = Object.keys(fundLabels).includes(account?.flow) ? account.flow : type === "asset" || type === "liability" || type === "netAsset" ? "none" : "operating";
@@ -1543,7 +1548,9 @@ function Entries({ data, persist, reports }) {
     setForm({ ...blank, date: form.date });
   }
 
-  function deleteEntry(id) {
+  function deleteEntry(entry) {
+    if (!confirmDelete("仕訳", `${entry.date} ${entry.voucher} ${currency(entry.amount)} ${entry.description}`)) return;
+    const id = entry.id;
     persist({ ...data, entries: data.entries.filter((entry) => entry.id !== id) });
   }
 
@@ -1677,7 +1684,7 @@ function Entries({ data, persist, reports }) {
                   <td>{currency(entry.amount)}</td>
                   <td>{entry.description}</td>
                   <td>
-                    <button className="icon-button danger" onClick={() => deleteEntry(entry.id)} title="削除">
+                    <button className="icon-button danger" onClick={() => deleteEntry(entry)} title="削除">
                       <Trash2 size={16} />
                     </button>
                   </td>
@@ -1786,6 +1793,11 @@ function PettyCash({ data, persist, reports }) {
 
     persist({ ...data, entries: [next, ...data.entries] });
     setForm({ ...form, voucher: "", description: "", amount: "" });
+  }
+
+  function deletePettyEntry(entry) {
+    if (!confirmDelete("小口現金の取引", `${entry.date} ${entry.voucher} ${currency(entry.amount)} ${entry.description}`)) return;
+    persist({ ...data, entries: data.entries.filter((item) => item.id !== entry.id) });
   }
 
   return (
@@ -1946,6 +1958,7 @@ function PettyCash({ data, persist, reports }) {
                 <th>相手科目</th>
                 <th>拠点</th>
                 <th>摘要</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1964,6 +1977,11 @@ function PettyCash({ data, persist, reports }) {
                       <small>{entry.service}</small>
                     </td>
                     <td>{entry.description}</td>
+                    <td>
+                      <button className="icon-button danger" onClick={() => deletePettyEntry(entry)} title="削除">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -2033,7 +2051,9 @@ function ClosingDocs({ data, persist, reports }) {
     setAssetForm({ ...assetForm, name: "", acquisitionCost: "", subsidy: "", location: "" });
   }
 
-  function deleteFixedAsset(id) {
+  function deleteFixedAsset(asset) {
+    if (!confirmDelete("固定資産", `${asset.name} ${currency(asset.acquisitionCost)} ${asset.location}`)) return;
+    const id = asset.id;
     persist({ ...data, fixedAssets: (data.fixedAssets ?? []).filter((asset) => asset.id !== id) });
   }
 
@@ -2243,7 +2263,7 @@ function ClosingDocs({ data, persist, reports }) {
                   <td>{currency(asset.bookValue)}</td>
                   <td>{asset.location}</td>
                   <td>
-                    <button className="icon-button danger" onClick={() => deleteFixedAsset(asset.id)} title="削除">
+                    <button className="icon-button danger" onClick={() => deleteFixedAsset(asset)} title="削除">
                       <Trash2 size={16} />
                     </button>
                   </td>

@@ -33,6 +33,7 @@ const staticChecks = [
   ["login failures show user facing auth error", /setAuthError\("メールアドレスまたはパスワードを確認してください。"\)/.test(source)],
   ["entry dates are repaired when fiscal year changes", /setForm\(\(current\) => \{\s+const safeDate = isDateInFiscalRange\(current\.date, data\.fiscalYear\)/m.test(source)],
   ["fiscal date errors show accepted range", /function fiscalDateErrorMessage/.test(source) && /alert\(fiscalDateErrorMessage\(form\.date, data\.fiscalYear\)\)/.test(source)],
+  ["delete actions require confirmation", /function confirmDelete/.test(source) && /function deleteEntry\(entry\) \{\s+if \(!confirmDelete/.test(source) && /function deletePettyEntry\(entry\) \{\s+if \(!confirmDelete/.test(source) && /function deleteFixedAsset\(asset\) \{\s+if \(!confirmDelete/.test(source)],
   ["no dangerous html injection", !/dangerouslySetInnerHTML|innerHTML\s*=|eval\(|new Function/.test(source)],
   ["no debug leftovers", !/debugger|TODO|FIXME/.test(source)],
   ["cloud writes record authenticated user", /updatedBy: context\.auth\.currentUser\.email/.test(cloudSource)],
