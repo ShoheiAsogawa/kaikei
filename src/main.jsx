@@ -325,17 +325,6 @@ const seedData = {
   ],
 };
 
-function blankOperationalData(fiscalYear = seedData.fiscalYear) {
-  return migrateData({
-    ...seedData,
-    fiscalYear: normalizeFiscalYear(fiscalYear),
-    entries: [],
-    budgets: [],
-    fixedAssets: [],
-    varianceReasons: {},
-  });
-}
-
 const accountTypes = {
   asset: "資産",
   liability: "負債",
@@ -1031,14 +1020,6 @@ function App() {
     setFilters({ query: "", business: "all", base: "all", service: "all", ...fiscalRange(seedData.fiscalYear) });
   }
 
-  function clearDemoData() {
-    const ok = window.confirm("仕訳・予算・固定資産・小口現金のサンプルデータを削除します。勘定科目と拠点設定は残します。よろしいですか？");
-    if (!ok) return;
-    const blank = blankOperationalData(data.fiscalYear);
-    persist(blank);
-    setFilters({ query: "", business: "all", base: "all", service: "all", ...fiscalRange(blank.fiscalYear) });
-  }
-
   async function loginCloud(email, password) {
     setAuthError("");
     setSyncStatus("cloud-loading");
@@ -1116,7 +1097,7 @@ function App() {
         {activeTab === "reports" && <Reports {...context} />}
         {activeTab === "closing" && <ClosingDocs {...context} />}
         {activeTab === "master" && <MasterData {...context} />}
-        {activeTab === "backup" && <Backup {...context} resetDemo={resetDemo} clearDemoData={clearDemoData} />}
+        {activeTab === "backup" && <Backup {...context} resetDemo={resetDemo} />}
       </main>
     </div>
   );
@@ -2583,7 +2564,7 @@ function MasterData({ data, persist }) {
   );
 }
 
-function Backup({ data, persist, reports, resetDemo, clearDemoData, setFilters }) {
+function Backup({ data, persist, reports, resetDemo, setFilters }) {
   function exportJson() {
     downloadFile(`shafuku-accounting-${data.fiscalYear}.json`, JSON.stringify(data, null, 2), "application/json;charset=utf-8");
   }
@@ -2635,20 +2616,7 @@ function Backup({ data, persist, reports, resetDemo, clearDemoData, setFilters }
           <span>保存済みJSONを読み込みます。</span>
           <input type="file" accept="application/json,.json" onChange={importJson} />
         </label>
-        <ActionCard icon={Trash2} title="入力データ削除" text="サンプルの仕訳・予算・固定資産・小口現金を空にします。" onClick={clearDemoData} danger />
         <ActionCard icon={RotateCcw} title="サンプル初期化" text="初期データに戻します。" onClick={resetDemo} danger />
-      </section>
-
-      <section className="panel">
-        <div className="panel-heading">
-          <h3>運用メモ</h3>
-          <AlertTriangle size={19} />
-        </div>
-        <div className="note-grid">
-          <p>データはこのブラウザの localStorage に保存されます。定期的にJSONバックアップを保存してください。</p>
-          <p>提出用の正式様式や附属明細書は、所轄庁・顧問税理士・公認会計士の確認に合わせて調整してください。</p>
-          <p>決算タブで内部取引消去の確認、固定資産台帳、減価償却計算、注記、財産目録を確認できます。</p>
-        </div>
       </section>
     </div>
   );
