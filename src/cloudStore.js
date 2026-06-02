@@ -7,6 +7,7 @@ const firebaseConfig = {
 
 const CLOUD_COLLECTION = import.meta.env.VITE_FIREBASE_COLLECTION || "accounting_ledgers";
 const CLOUD_DOCUMENT_ID = import.meta.env.VITE_FIREBASE_DOCUMENT_ID || "senshu-hisaho-main";
+const APP_CHECK_SITE_KEY = import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY;
 const configured = Object.values(firebaseConfig).every(Boolean);
 
 let cloudContextPromise;
@@ -19,12 +20,19 @@ async function cloudContext() {
   if (!configured) return null;
   if (!cloudContextPromise) {
     cloudContextPromise = (async () => {
-      const [{ initializeApp }, { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut }, { doc, getDoc, getFirestore, serverTimestamp, setDoc }] =
+      const [{ initializeApp }, { browserSessionPersistence, getAuth, onAuthStateChanged, setPersistence, signInWithEmailAndPassword, signOut }, { doc, getDoc, getFirestore, serverTimestamp, setDoc }] =
         await Promise.all([import("firebase/app"), import("firebase/auth"), import("firebase/firestore")]);
       const app = initializeApp(firebaseConfig);
+      if (APP_CHECK_SITE_KEY) {
+        const { initializeAppCheck, ReCaptchaV3Provider } = await import("firebase/app-check");
+        initializeAppCheck(app, {
+          provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
+          isTokenAutoRefreshEnabled: true,
+        });
+      }
       const auth = getAuth(app);
       const db = getFirestore(app);
-      return { auth, db, doc, getDoc, onAuthStateChanged, serverTimestamp, setDoc, signInWithEmailAndPassword, signOut };
+      return { auth, browserSessionPersistence, db, doc, getDoc, onAuthStateChanged, serverTimestamp, setDoc, setPersistence, signInWithEmailAndPassword, signOut };
     })();
   }
   return cloudContextPromise;
@@ -39,6 +47,7 @@ export async function onCloudAuthState(callback) {
 export async function signInCloud(email, password) {
   const context = await cloudContext();
   if (!context) return null;
+  await context.setPersistence(context.auth, context.browserSessionPersistence);
   const credential = await context.signInWithEmailAndPassword(context.auth, email, password);
   return credential.user;
 }
@@ -65,6 +74,7 @@ export async function saveCloudData(payload) {
     context.doc(context.db, CLOUD_COLLECTION, CLOUD_DOCUMENT_ID),
     {
       payload,
+      updatedBy: context.auth.currentUser.email,
       updatedAt: context.serverTimestamp(),
     },
     { merge: true },

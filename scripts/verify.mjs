@@ -3,6 +3,8 @@ import vm from "node:vm";
 import { transformSync } from "esbuild";
 
 const source = readFileSync(new URL("../src/main.jsx", import.meta.url), "utf8");
+const cloudSource = readFileSync(new URL("../src/cloudStore.js", import.meta.url), "utf8");
+const firestoreRules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
 
 function assert(name, condition) {
   if (!condition) {
@@ -34,6 +36,12 @@ const staticChecks = [
   ["fiscal date errors show accepted range", /function fiscalDateErrorMessage/.test(source) && /alert\(fiscalDateErrorMessage\(form\.date, data\.fiscalYear\)\)/.test(source)],
   ["no dangerous html injection", !/dangerouslySetInnerHTML|innerHTML\s*=|eval\(|new Function/.test(source)],
   ["no debug leftovers", !/debugger|TODO|FIXME/.test(source)],
+  ["cloud writes record authenticated user", /updatedBy: context\.auth\.currentUser\.email/.test(cloudSource)],
+  ["cloud auth uses session persistence", /browserSessionPersistence/.test(cloudSource) && /setPersistence\(context\.auth, context\.browserSessionPersistence\)/.test(cloudSource)],
+  ["app check can be enabled", /VITE_FIREBASE_APPCHECK_SITE_KEY/.test(cloudSource) && /initializeAppCheck/.test(cloudSource) && /ReCaptchaV3Provider/.test(cloudSource)],
+  ["firestore rules require verified authorized email", /request\.auth\.token\.email_verified == true/.test(firestoreRules) && /hisahohoikuen@gmail\.com/.test(firestoreRules)],
+  ["firestore rules restrict exact ledger document", /match \/accounting_ledgers\/senshu-hisaho-main/.test(firestoreRules) && /match \/accounting_ledgers\/\{documentId\}/.test(firestoreRules) && /allow read, write: if false/.test(firestoreRules)],
+  ["firestore rules validate ledger shape", /function isLedgerShape/.test(firestoreRules) && /entries\.size\(\) <= 20000/.test(firestoreRules) && /allow delete: if false/.test(firestoreRules)],
 ];
 
 for (const [name, ok] of staticChecks) {

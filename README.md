@@ -58,4 +58,12 @@ npm run verify
 npm run build
 ```
 
+## セキュリティ設定
+
+- Firestore Rulesは `accounting_ledgers/senshu-hisaho-main` だけを許可します。`VITE_FIREBASE_DOCUMENT_ID` を変更する場合は、Rules側のドキュメントIDも同じ値へ変更してください。
+- 利用者は Firebase Authentication の Email/Password で作成し、メール確認済みにしてください。Rulesでは `hisahohoikuen@gmail.com` かつ `email_verified == true` のユーザーだけを許可しています。
+- 複数人で使う場合は `firestore.rules` のメールアドレス配列に利用者を追加してください。
+- 可能なら Firebase App Check を有効化し、reCAPTCHA v3 のサイトキーを `VITE_FIREBASE_APPCHECK_SITE_KEY` または GitHub Secret `VITE_FIREBASE_APPCHECK_SITE_KEY` に設定してください。
+- Firebaseコンソール側で Firestore の App Check 強制を有効化すると、公開Firebase設定を使った外部スクリプトからのアクセスを抑止できます。
+
 `verify` は会計ロジック、復元データ正規化、固定資産、予算、年度外仕訳などを実行型で検証します。

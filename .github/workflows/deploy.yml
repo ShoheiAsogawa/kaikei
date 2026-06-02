@@ -34,6 +34,7 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_FIREBASE_COLLECTION: ${{ secrets.VITE_FIREBASE_COLLECTION }}
           VITE_FIREBASE_DOCUMENT_ID: ${{ secrets.VITE_FIREBASE_DOCUMENT_ID }}
+          VITE_FIREBASE_APPCHECK_SITE_KEY: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
