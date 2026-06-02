@@ -5,7 +5,7 @@ service cloud.firestore {
     match /accounting_ledgers/{documentId} {
       allow read, write: if request.auth != null
         && request.auth.token.email in [
-          "replace-with-authorized-user@example.com"
+          "hisahohoikuen@gmail.com"
         ];
     }
   }
